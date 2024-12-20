@@ -40,6 +40,7 @@ BluetoothSerial SerialBT;
 bool success      = false;
 bool cardPresesnt = false;
 
+bool  mode = 0;                               // Mode of operation
 uint8_t numTags = 0;                          // Number of tags
 String removeCommand = "";                    // Remove command
 String commands[] = {"", "", "", "", "", "", "", "", "", ""};     // Commands for tags
@@ -87,16 +88,17 @@ String readStringFromEEPROM(int addrOffset) {
 /**
  * @brief Processes the given tag ID and executes the corresponding command if the tag is recognized.
  * 
- * This function compares the provided tag ID with a list of known tags. If a match is found,
- * it prints the corresponding command to the serial output. If no match is found and debugging
- * is enabled, it prints "UNKNOWN TAG" to the serial output.
+ * This function compares the provided tag ID with a list of known tags. 
+ * If a match is found, it Checks the mode of operation and sends the corresponding command to the Serial or Serial2 output.
+ * If no match is found and debugging is enabled, it prints "UNKNOWN TAG" to the serial output.
  * 
  * @param tagID_ The tag ID to be processed.
  */
 void processTagID(String tagID_){
   for (int i = 0; i < numTags; i++) {
     if (tagID_ == tags[i]) {
-      Serial.println(); Serial.println(commands[i]);
+      if (!mode){ Serial.println(); Serial.println(commands[i]); }
+      if (mode){ Serial2.println(); Serial2.println(commands[i]); }
       return;
     }
   }
@@ -152,7 +154,8 @@ void readNFC(){
     if(DEBUG) {Serial.println("CARD REMOVED");}
     for (int i = 0; i < numTags; i++) {
       if (prevTagID == tags[i]) {
-        Serial.println(); Serial.println(removeCommand);
+        if (!mode){ Serial.println(); Serial.println(removeCommand); }
+        if (mode){ Serial2.println(); Serial2.println(removeCommand); }
         return;
       }
     }
@@ -195,6 +198,7 @@ void nfcInit(){
  * - "T<index>": Sets the last placed tag ID for the specified index and stores it in EEPROM.
  * - "C<index><command>": Sets a command for the specified index and stores it in EEPROM.
  * - "R<command>": Sets the tag remove command and stores it in EEPROM.
+ * - "M<mode>": Sets the mode of operation (Master or Standalone) and stores it in EEPROM.
  * - "HELP": Prints help information about the available commands.
  * 
  * The function uses EEPROM to store and retrieve data, and communicates via Serial and Serial Bluetooth.
@@ -249,18 +253,30 @@ void processData(String data) {
     SerialBT.println("Remove Command: " + command);
     Serial.println("Remove Command: " + command);
     return;
-  } else if (data.indexOf("HELP")>=0){
+  } else if (data.startsWith("M")){
+    if (data.substring(1, data.length()).toInt() == 1){
+      mode = 1; EEPROM.write(5, mode); EEPROM.commit(); delay(10);
+      Serial.println("MODE SET TO MASTER"); SerialBT.println("MODE SET TO MASTER");
+    } else if (data.substring(1, data.length()).toInt() == 0){
+      mode = 0; EEPROM.write(5, mode); EEPROM.commit(); delay(10);
+      Serial.println("MODE SET TO STANDALONE"); SerialBT.println("MODE SET TO STANDALONE");
+    }
+  } 
+  
+  else if (data.indexOf("HELP")>=0){
     SerialBT.println("RFID Cube Podium PN532 - Firmware v1.0");
     SerialBT.println("N<num> - Set number of tags. 'Eg: N10' ");
     SerialBT.println("T<index> - Set Last placed tag ID for index. Eg: T1");
     SerialBT.println("C<index><command> - Set command for index. Eg: C1HELLO - Set HELLO command for index 1");
     SerialBT.println("R<command> - Set Tag Remove command. Eg: RREMOVED - Set REMOVED command for tag remove");
+    SerialBT.println("M<mode> - Set mode. M1 - Set mode to MASTER, M0 - Set mode to Standalone" );
 
     Serial.println("RFID Cube Podium PN532 - Firmware v1.0"); Serial.println();
     Serial.println("N<num> - Set number of tags. 'Eg: N10' ");
     Serial.println("T<index> - Set Last placed tag ID for index. Eg: T1");
     Serial.println("C<index><command> - Set command for index. Eg: C1HELLO - Set HELLO command for index 1");
     Serial.println("R<command> - Set Tag Remove command. Eg: RREMOVED - Set REMOVED command for tag remove");
+    Serial.println("M<mode> - Set mode. M1 - Set mode to MASTER, M0 - Set mode to Standalone" );
     return;
   }
 }
@@ -300,9 +316,10 @@ void readBTSerial(){
 /**
  * @brief Initializes the EEPROM and reads stored data.
  *
- * This function initializes the EEPROM with a size of 512 bytes. It then reads
- * the number of stored tags from the EEPROM at address 0. The remove command is
- * read from address 300. For each tag, it reads the tag ID starting from address
+ * This function initializes the EEPROM with a size of 512 bytes. 
+ * It then reads the number of stored tags from the EEPROM at address 0. 
+ * It also reads the mode of operation from address 5.
+ * The remove command is read from address 300. For each tag, it reads the tag ID starting from address
  * 10 and increments by 10 for each subsequent tag. Similarly, it reads the commands
  * associated with each tag starting from address 100 and increments by 10 for each
  * subsequent command.
@@ -310,6 +327,7 @@ void readBTSerial(){
 void eepromInit(){
   EEPROM.begin(512);                                  // eeprom init
   numTags = EEPROM.read(0);                           // read number of tags
+  mode = EEPROM.read(5);                              // read mode
   removeCommand = readStringFromEEPROM(300);          // read remove command
   for (int i = 0; i < numTags; i++) {
     tags[i] = readStringFromEEPROM(10 + i * 10);      // read tagIDs
@@ -321,14 +339,16 @@ void eepromInit(){
  * @brief Initializes the serial communication, Bluetooth communication, EEPROM, and NFC module.
  * 
  * This function sets up the necessary components for the system to function properly. It begins
- * by initializing the serial communication at a baud rate of 115200 for debugging purposes. 
+ * by initializing the serial communication at a baud rate of 9600 for debugging purposes. 
+ * Then Initiate the Serial2 communication at a baud rate of 115200 for Master mode communication.
  * Then, it starts the Bluetooth communication with the device name "RFID_PN532". 
  * After that, it initializes the EEPROM to store and retrieve data. 
  * Finally, it initializes the NFC module to enable NFC communication.
  */
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
+  Serial2.begin(115200);
   SerialBT.begin("RFID_PN532");
   eepromInit();
   nfcInit();
