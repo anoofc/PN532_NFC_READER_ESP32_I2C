@@ -1,6 +1,4 @@
-#define DEBUG 1
-
-#define REMOVE_COMMAND "Z" 
+#define DEBUG 0
 
 #define TIMEOUT 100
 
@@ -49,9 +47,6 @@ String readStringFromEEPROM(int addrOffset) {
     return String(data);
 }
 
-
-
-
 void processTagID(){
   for (int i = 0; i < numTags; i++) {
     if (tagID == tags[i]) {
@@ -89,9 +84,7 @@ void readNFC(){
     if (DEBUG) {
       Serial.println("Found an ISO14443A card");
       Serial.print("  UID Length: ");Serial.print(uidLength, DEC);Serial.println(" bytes");
-      if (DEBUG) { Serial.println("TAG ID: "+ tagID); }
-      // Serial.print("  UID Value: ");
-      // nfc.PrintHex(uid, uidLength);
+      Serial.println("TAG ID: "+ tagID); Serial.print("  UID Value: "); nfc.PrintHex(uid, uidLength);
       Serial.println("");
     }
     processTagID();
@@ -103,7 +96,7 @@ void readNFC(){
     if(DEBUG) {Serial.println("CARD REMOVED");}
     for (int i = 0; i < numTags; i++) {
       if (prevTagID == tags[i]) {
-        Serial.println(REMOVE_COMMAND);
+        Serial.println(removeCommand);
         return;
       }
     }
@@ -175,8 +168,24 @@ void processData(String data) {
     SerialBT.println("T<index> - Set Last placed tag ID for index. Eg: T1");
     SerialBT.println("C<index><command> - Set command for index. Eg: C1HELLO - Set HELLO command for index 1");
     SerialBT.println("R<command> - Set Tag Remove command. Eg: RREMOVED - Set REMOVED command for tag remove");
+
+    Serial.println("RFID Cube Podium PN532 - Firmware v1.0");
+    Serial.println("N<num> - Set number of tags. 'Eg: N10' ");
+    Serial.println("T<index> - Set Last placed tag ID for index. Eg: T1");
+    Serial.println("C<index><command> - Set command for index. Eg: C1HELLO - Set HELLO command for index 1");
+    Serial.println("R<command> - Set Tag Remove command. Eg: RREMOVED - Set REMOVED command for tag remove");
+    return;
   }
 }
+
+void readSerial(){
+  if (Serial.available()) {
+    String incoming = Serial.readStringUntil('\n');
+    processData(incoming);
+    if (DEBUG) {Serial.println(incoming);}
+  }
+}
+
 void readBTSerial(){
   if (SerialBT.available()) {
     String incoming = SerialBT.readStringUntil('\n');
@@ -206,4 +215,5 @@ void setup() {
 void loop() {
   readNFC();
   readBTSerial();
+  readSerial();
 }
