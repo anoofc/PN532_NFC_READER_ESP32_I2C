@@ -169,7 +169,7 @@ void processData(String data) {
     removeCommand = data.substring(1, data.length());
     writeStringToEEPROM(300, removeCommand);
     return;
-  } else if (data.indexOf("HELP")){
+  } else if (data.indexOf("HELP")>=0){
     SerialBT.println("RFID Cube Podium PN532 - Firmware v1.0");
     SerialBT.println("N<num> - Set number of tags. 'Eg: N10' ");
     SerialBT.println("T<index> - Set Last placed tag ID for index. Eg: T1");
