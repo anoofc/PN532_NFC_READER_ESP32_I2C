@@ -1,16 +1,5 @@
 #define DEBUG 1
 
-#define COMMAND1 "A"
-#define COMMAND2 "B"
-#define COMMAND3 "C"
-#define COMMAND4 "D"
-#define COMMAND5 "E"
-#define COMMAND6 "F"
-#define COMMAND7 "G"
-#define COMMAND8 "H"
-#define COMMAND9 "I"
-#define COMMAND10 "J"
-
 #define REMOVE_COMMAND "Z" 
 
 #define TIMEOUT 100
@@ -32,11 +21,12 @@ Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
 
 BluetoothSerial SerialBT;
 
-bool success = false;
+bool success      = false;
 bool cardPresesnt = false;
 
 uint8_t numTags = EEPROM.read(1);
-String commands[] = {COMMAND1, COMMAND2, COMMAND3, COMMAND4, COMMAND5, COMMAND6, COMMAND7, COMMAND8, COMMAND9, COMMAND10};
+String commands[] = {"", "", "", "", "", "", "", "", "", ""};
+String tags[] = {"", "", "", "", "", "", "", "", "", ""};  
 String tagID      = "";
 String prevTagID  = "";
 
@@ -58,7 +48,7 @@ String readStringFromEEPROM(int addrOffset) {
     return String(data);
 }
 
-String tags[] = {readStringFromEEPROM(10), readStringFromEEPROM(20), readStringFromEEPROM(30), readStringFromEEPROM(40), readStringFromEEPROM(50), readStringFromEEPROM(60), readStringFromEEPROM(70), readStringFromEEPROM(80), readStringFromEEPROM(90), readStringFromEEPROM(100)};  
+
 
 
 void processTagID(){
@@ -124,7 +114,7 @@ void nfcInit(){
 
   uint32_t versiondata = nfc.getFirmwareVersion();
   
-  if (! versiondata) {
+  if (!versiondata) {
     if (DEBUG) { Serial.println("Didn't find PN53x board");}
     while (1); // halt
   }
@@ -158,8 +148,21 @@ void processData(String data) {
     for (int i = 0; i < numTags; i++) {
       String tagID_ = readStringFromEEPROM(10 + i * 10);
       delay(10);
-      SerialBT.println("Index: " + String(i) + " TAG ID: " + tagID_);
+      SerialBT.println("Index: " + String(i+1) + " Tag ID: " + tagID_);
     } 
+    return;
+  } else if (data.startsWith("C")) {
+    int index = data.substring(1, data.length()).toInt() - 1;
+    if (index >= 0 && index < 10) {
+      commands[index] = data.substring(3, data.length());
+      writeStringToEEPROM(100 + index * 10, commands[index]);
+      EEPROM.commit();
+    }
+    for (int i = 0; i < numTags; i++) {
+      String command = readStringFromEEPROM(100 + i * 10);
+      delay(10);
+      SerialBT.println("Index: " + String(i+1) + " Command: " + command);
+    }
     return;
   }
 }
@@ -172,7 +175,13 @@ void readBTSerial(){
 }
 
 void eepromInit(){
-  EEPROM.begin(512);
+  EEPROM.begin(512);                                  // eeprom init
+  numTags = EEPROM.read(0);                           // read number of tags
+  for (int i = 0; i < numTags; i++) {
+    tags[i] = readStringFromEEPROM(10 + i * 10);      // read tagIDs
+    commands[i] = readStringFromEEPROM(100 + i * 10); // read commands
+  }
+
 }
 
 void setup() {
