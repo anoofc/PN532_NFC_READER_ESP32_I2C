@@ -4,7 +4,6 @@
  * @author  Anoof Chappangathil
  * @version 1.0
  * @date    20/12/2024
- * @
  * 
  * This is the firmware for the RFID Cube Podium using PN532 NFC Module. 
  * This firmware is used to read NFC tags and execute commands based on the tag ID.
@@ -66,9 +65,9 @@ String readStringFromEEPROM(int addrOffset) {
     return String(data);
 }
 
-void processTagID(){
+void processTagID(String tagID_){
   for (int i = 0; i < numTags; i++) {
-    if (tagID == tags[i]) {
+    if (tagID_ == tags[i]) {
       Serial.println(); Serial.println(commands[i]);
       return;
     }
@@ -92,7 +91,6 @@ void readNFC(){
   // IF NEW TAG COUND
   if (success & (!cardPresesnt)) {
     cardPresesnt = true;
-    // Display some basic information about the card
     // Store UID to tagID
     for (uint8_t i = 0; i < uidLength; i++) {
       if (uid[i] < 0x10) { tagID += "0"; }
@@ -106,7 +104,7 @@ void readNFC(){
       Serial.println("TAG ID: "+ tagID); Serial.print("  UID Value: "); nfc.PrintHex(uid, uidLength);
       Serial.println("");
     }
-    processTagID();
+    processTagID(tagID);
     return;
   }
   // IF CARD REMOVED
