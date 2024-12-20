@@ -177,7 +177,7 @@ void processData(String data) {
     SerialBT.println("C<index><command> - Set command for index. Eg: C1HELLO - Set HELLO command for index 1");
     SerialBT.println("R<command> - Set Tag Remove command. Eg: RREMOVED - Set REMOVED command for tag remove");
 
-    Serial.println("RFID Cube Podium PN532 - Firmware v1.0");
+    Serial.println("RFID Cube Podium PN532 - Firmware v1.0"); Serial.println();
     Serial.println("N<num> - Set number of tags. 'Eg: N10' ");
     Serial.println("T<index> - Set Last placed tag ID for index. Eg: T1");
     Serial.println("C<index><command> - Set command for index. Eg: C1HELLO - Set HELLO command for index 1");
