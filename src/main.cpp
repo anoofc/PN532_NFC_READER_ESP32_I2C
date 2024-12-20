@@ -1,3 +1,22 @@
+/**
+ * @file    main.cpp
+ * @brief   RFID Cube Podium PN532 Firmware
+ * @author  Anoof Chappangathil
+ * @version 1.0
+ * @date    20/12/2024
+ * @
+ * 
+ * This is the firmware for the RFID Cube Podium using PN532 NFC Module. 
+ * This firmware is used to read NFC tags and execute commands based on the tag ID.
+ * Configuration of the tags and commands can be done via Serial or Bluetooth Serial.
+ *    - N<num> - Set number of tags. 'Eg: N10'
+ *    - T<index> - Set Last placed tag ID for index. Eg: T1
+ *    - C<index><command> - Set command for index. Eg: C1HELLO - Set HELLO command for index 1
+ *    - R<command> - Set Tag Remove command. Eg: RREMOVED - Set REMOVED command for tag remove
+ *    - HELP - Get help
+ * 
+ */
+
 #define DEBUG 0
 
 #define TIMEOUT 100
