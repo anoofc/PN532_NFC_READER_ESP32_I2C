@@ -24,7 +24,8 @@ BluetoothSerial SerialBT;
 bool success      = false;
 bool cardPresesnt = false;
 
-uint8_t numTags = EEPROM.read(1);
+uint8_t numTags = 0;
+String removeCommand = "";
 String commands[] = {"", "", "", "", "", "", "", "", "", ""};
 String tags[] = {"", "", "", "", "", "", "", "", "", ""};  
 String tagID      = "";
@@ -164,6 +165,16 @@ void processData(String data) {
       SerialBT.println("Index: " + String(i+1) + " Command: " + command);
     }
     return;
+  } else if (data.startsWith("R")) {
+    removeCommand = data.substring(1, data.length());
+    writeStringToEEPROM(300, removeCommand);
+    return;
+  } else if (data.indexOf("HELP")){
+    SerialBT.println("RFID Cube Podium PN532 - Firmware v1.0");
+    SerialBT.println("N<num> - Set number of tags. 'Eg: N10' ");
+    SerialBT.println("T<index> - Set Last placed tag ID for index. Eg: T1");
+    SerialBT.println("C<index><command> - Set command for index. Eg: C1HELLO - Set HELLO command for index 1");
+    SerialBT.println("R<command> - Set Tag Remove command. Eg: RREMOVED - Set REMOVED command for tag remove");
   }
 }
 void readBTSerial(){
@@ -177,6 +188,7 @@ void readBTSerial(){
 void eepromInit(){
   EEPROM.begin(512);                                  // eeprom init
   numTags = EEPROM.read(0);                           // read number of tags
+  removeCommand = readStringFromEEPROM(300);          // read remove command
   for (int i = 0; i < numTags; i++) {
     tags[i] = readStringFromEEPROM(10 + i * 10);      // read tagIDs
     commands[i] = readStringFromEEPROM(100 + i * 10); // read commands
