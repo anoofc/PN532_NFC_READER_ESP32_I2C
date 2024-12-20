@@ -16,9 +16,9 @@
  * 
  */
 
-#define DEBUG 0
+#define DEBUG       0
 
-#define TIMEOUT 100
+#define TIMEOUT     100
 
 #define PN532_IRQ   (2)
 #define PN532_RESET (3)  // Not connected by default on the NFC Shield
@@ -40,13 +40,22 @@ BluetoothSerial SerialBT;
 bool success      = false;
 bool cardPresesnt = false;
 
-uint8_t numTags = 0;
-String removeCommand = "";
-String commands[] = {"", "", "", "", "", "", "", "", "", ""};
-String tags[] = {"", "", "", "", "", "", "", "", "", ""};  
-String tagID      = "";
-String prevTagID  = "";
+uint8_t numTags = 0;                          // Number of tags
+String removeCommand = "";                    // Remove command
+String commands[] = {"", "", "", "", "", "", "", "", "", ""};     // Commands for tags
+String tags[] = {"", "", "", "", "", "", "", "", "", ""};         // Tag IDs
+String tagID      = "";                       // Current Tag ID
+String prevTagID  = "";                       // Previous Tag ID
 
+/**
+ * @brief Writes a string to EEPROM starting at the specified address offset.
+ *
+ * This function writes the length of the string followed by the string's characters
+ * to the EEPROM at the given address offset.
+ *
+ * @param addrOffset The starting address in EEPROM where the string will be written.
+ * @param strToWrite The string to be written to EEPROM.
+ */
 void writeStringToEEPROM(int addrOffset, const String &strToWrite) {
   byte len = strToWrite.length();
   EEPROM.write(addrOffset, len);
@@ -54,6 +63,16 @@ void writeStringToEEPROM(int addrOffset, const String &strToWrite) {
       EEPROM.write(addrOffset + 1 + i, strToWrite[i]);
   }
 }
+
+/**
+ * @brief Reads a string from EEPROM starting at the specified address offset.
+ *
+ * This function reads the length of the string stored at the given EEPROM address offset,
+ * then reads the subsequent characters to construct the string.
+ *
+ * @param addrOffset The starting address offset in EEPROM where the string is stored.
+ * @return A String object containing the data read from EEPROM.
+ */
 
 String readStringFromEEPROM(int addrOffset) {
     int newStrLen = EEPROM.read(addrOffset);
@@ -65,6 +84,15 @@ String readStringFromEEPROM(int addrOffset) {
     return String(data);
 }
 
+/**
+ * @brief Processes the given tag ID and executes the corresponding command if the tag is recognized.
+ * 
+ * This function compares the provided tag ID with a list of known tags. If a match is found,
+ * it prints the corresponding command to the serial output. If no match is found and debugging
+ * is enabled, it prints "UNKNOWN TAG" to the serial output.
+ * 
+ * @param tagID_ The tag ID to be processed.
+ */
 void processTagID(String tagID_){
   for (int i = 0; i < numTags; i++) {
     if (tagID_ == tags[i]) {
@@ -75,6 +103,17 @@ void processTagID(String tagID_){
   if (DEBUG) {Serial.println("UNKNOWN TAG");}
 }
 
+/**
+ * @brief Reads an NFC tag using the PN532 NFC reader.
+ * 
+ * This function waits for an NTAG203 card and reads its UID. It handles three main scenarios:
+ * 1. No change in card presence.
+ * 2. A new card is detected.
+ * 3. The card is removed.
+ * 
+ * When a new card is detected, the UID is stored in the `tagID` variable and processed.
+ * If the card is removed, it checks if the removed card's UID matches any known tags and performs the necessary actions.
+ */
 void readNFC(){
   uint8_t success;
   uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
@@ -120,6 +159,14 @@ void readNFC(){
   }
 }
 
+/**
+ * @brief Initializes the NFC module and checks for the PN53x board.
+ * 
+ * This function begins communication with the NFC module and retrieves the firmware version.
+ * If the PN53x board is not found, it halts the program. If the board is found, it prints
+ * the chip and firmware version information to the Serial monitor and indicates that it is
+ * waiting for an ISO14443A card.
+ */
 void nfcInit(){
   nfc.begin();
 
@@ -139,6 +186,21 @@ void nfcInit(){
     Serial.println("Waiting for an ISO14443A Card ...");
   } 
 }
+
+/**
+ * @brief Processes the input data string and performs various actions based on its prefix.
+ * 
+ * This function handles different commands based on the prefix of the input data string:
+ * - "N<num>": Sets the number of tags and stores it in EEPROM.
+ * - "T<index>": Sets the last placed tag ID for the specified index and stores it in EEPROM.
+ * - "C<index><command>": Sets a command for the specified index and stores it in EEPROM.
+ * - "R<command>": Sets the tag remove command and stores it in EEPROM.
+ * - "HELP": Prints help information about the available commands.
+ * 
+ * The function uses EEPROM to store and retrieve data, and communicates via Serial and Serial Bluetooth.
+ * 
+ * @param data The input data string containing the command and its parameters.
+ */
 void processData(String data) {
   if (data.startsWith("N")) {
     numTags = data.substring(1, data.length()).toInt();
@@ -203,6 +265,14 @@ void processData(String data) {
   }
 }
 
+/**
+ * @brief Reads data from the serial input if available and processes it.
+ *
+ * This function checks if there is any data available on the serial input.
+ * If data is available, it reads the incoming data as a string until a newline character is encountered.
+ * The read data is then passed to the processData function for further processing.
+ * If debugging is enabled, the incoming data is also printed to the serial output.
+ */
 void readSerial(){
   if (Serial.available()) {
     String incoming = Serial.readStringUntil('\n');
@@ -211,6 +281,14 @@ void readSerial(){
   }
 }
 
+/**
+ * @brief Reads data from the Bluetooth serial connection.
+ *
+ * This function checks if there is any data available on the Bluetooth serial connection.
+ * If data is available, it reads the incoming data as a string until a newline character is encountered.
+ * The incoming data is then processed by the processData function.
+ * If debugging is enabled, the incoming data is also printed to the Bluetooth serial connection.
+ */
 void readBTSerial(){
   if (SerialBT.available()) {
     String incoming = SerialBT.readStringUntil('\n');
@@ -219,6 +297,16 @@ void readBTSerial(){
   }
 }
 
+/**
+ * @brief Initializes the EEPROM and reads stored data.
+ *
+ * This function initializes the EEPROM with a size of 512 bytes. It then reads
+ * the number of stored tags from the EEPROM at address 0. The remove command is
+ * read from address 300. For each tag, it reads the tag ID starting from address
+ * 10 and increments by 10 for each subsequent tag. Similarly, it reads the commands
+ * associated with each tag starting from address 100 and increments by 10 for each
+ * subsequent command.
+ */
 void eepromInit(){
   EEPROM.begin(512);                                  // eeprom init
   numTags = EEPROM.read(0);                           // read number of tags
@@ -227,8 +315,17 @@ void eepromInit(){
     tags[i] = readStringFromEEPROM(10 + i * 10);      // read tagIDs
     commands[i] = readStringFromEEPROM(100 + i * 10); // read commands
   }
-
 }
+
+/**
+ * @brief Initializes the serial communication, Bluetooth communication, EEPROM, and NFC module.
+ * 
+ * This function sets up the necessary components for the system to function properly. It begins
+ * by initializing the serial communication at a baud rate of 115200 for debugging purposes. 
+ * Then, it starts the Bluetooth communication with the device name "RFID_PN532". 
+ * After that, it initializes the EEPROM to store and retrieve data. 
+ * Finally, it initializes the NFC module to enable NFC communication.
+ */
 
 void setup() {
   Serial.begin(115200);
@@ -237,6 +334,14 @@ void setup() {
   nfcInit();
 }
 
+/**
+ * @brief Main loop function that continuously reads data from NFC, Bluetooth Serial, and Serial interfaces.
+ * 
+ * This function is called repeatedly in the main program loop. It performs the following tasks:
+ * - Reads data from an NFC reader by calling the readNFC() function.
+ * - Reads data from a Bluetooth Serial interface by calling the readBTSerial() function.
+ * - Reads data from a standard Serial interface by calling the readSerial() function.
+ */
 void loop() {
   readNFC();
   readBTSerial();
