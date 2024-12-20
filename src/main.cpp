@@ -128,9 +128,10 @@ void processData(String data) {
     Serial.println(numTags);
     EEPROM.write(0, numTags);
     EEPROM.commit();
-    int num = EEPROM.read(0);
     delay(10);
+    int num = EEPROM.read(0);
     SerialBT.println("NUM TAGS SET TO: " + String(num));
+    Serial.println("NUM TAGS SET TO: " + String(num));
     return;
   } else if (data.startsWith("T")) {
     int index = data.substring(1, data.length()).toInt() - 1;
@@ -138,11 +139,12 @@ void processData(String data) {
       tags[index] = prevTagID;
       writeStringToEEPROM(10 + index * 10, prevTagID);
       EEPROM.commit();
+      delay(10);
     }
     for (int i = 0; i < numTags; i++) {
       String tagID_ = readStringFromEEPROM(10 + i * 10);
-      delay(10);
       SerialBT.println("Index: " + String(i+1) + " Tag ID: " + tagID_);
+      Serial.println("Index: " + String(i+1) + " Tag ID: " + tagID_);
     } 
     return;
   } else if (data.startsWith("C")) {
@@ -151,16 +153,21 @@ void processData(String data) {
       commands[index] = data.substring(3, data.length());
       writeStringToEEPROM(100 + index * 10, commands[index]);
       EEPROM.commit();
+      delay(10);
     }
     for (int i = 0; i < numTags; i++) {
       String command = readStringFromEEPROM(100 + i * 10);
-      delay(10);
       SerialBT.println("Index: " + String(i+1) + " Command: " + command);
+      Serial.println("Index: " + String(i+1) + " Command: " + command);
     }
     return;
   } else if (data.startsWith("R")) {
     removeCommand = data.substring(1, data.length());
     writeStringToEEPROM(300, removeCommand);
+    EEPROM.commit();
+    delay(10);
+    SerialBT.println("Remove Command: " + removeCommand);
+    Serial.println("Remove Command: " + removeCommand);
     return;
   } else if (data.indexOf("HELP")>=0){
     SerialBT.println("RFID Cube Podium PN532 - Firmware v1.0");
@@ -206,7 +213,7 @@ void eepromInit(){
 }
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   SerialBT.begin("RFID_PN532");
   eepromInit();
   nfcInit();
