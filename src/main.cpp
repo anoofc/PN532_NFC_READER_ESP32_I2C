@@ -50,7 +50,7 @@ String readStringFromEEPROM(int addrOffset) {
 void processTagID(){
   for (int i = 0; i < numTags; i++) {
     if (tagID == tags[i]) {
-      Serial.println(commands[i]);
+      Serial.println(); Serial.println(commands[i]);
       return;
     }
   }
@@ -96,7 +96,7 @@ void readNFC(){
     if(DEBUG) {Serial.println("CARD REMOVED");}
     for (int i = 0; i < numTags; i++) {
       if (prevTagID == tags[i]) {
-        Serial.println(removeCommand);
+        Serial.println(); Serial.println(removeCommand);
         return;
       }
     }
@@ -165,9 +165,10 @@ void processData(String data) {
     removeCommand = data.substring(1, data.length());
     writeStringToEEPROM(300, removeCommand);
     EEPROM.commit();
+    String command = readStringFromEEPROM(300);
     delay(10);
-    SerialBT.println("Remove Command: " + removeCommand);
-    Serial.println("Remove Command: " + removeCommand);
+    SerialBT.println("Remove Command: " + command);
+    Serial.println("Remove Command: " + command);
     return;
   } else if (data.indexOf("HELP")>=0){
     SerialBT.println("RFID Cube Podium PN532 - Firmware v1.0");
