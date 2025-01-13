@@ -39,14 +39,13 @@ BluetoothSerial SerialBT;
 
 bool success      = false;
 bool cardPresesnt = false;
-
-bool  mode = 0;                               // Mode of operation
-uint8_t numTags = 0;                          // Number of tags
-String removeCommand = "";                    // Remove command
-String commands[] = {"", "", "", "", "", "", "", "", "", ""};     // Commands for tags
-String tags[] = {"", "", "", "", "", "", "", "", "", ""};         // Tag IDs
-String tagID      = "";                       // Current Tag ID
-String prevTagID  = "";                       // Previous Tag ID
+bool mode         = 0;                               // Mode of operation
+uint8_t numTags       = 0;                          // Number of tags
+String removeCommand  = "";                    // Remove command
+String commands[]     = {"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""};     // Commands for tags
+String tags[]         = {"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""};         // Tag IDs
+String tagID          = "";                       // Current Tag ID
+String prevTagID      = "";                       // Previous Tag ID
 
 /**
  * @brief Writes a string to EEPROM starting at the specified address offset.
@@ -208,6 +207,7 @@ void nfcInit(){
 void processData(String data) {
   if (data.startsWith("N")) {
     numTags = data.substring(1, data.length()).toInt();
+    if (numTags > 20) numTags = 10;                   // Ensure numTags does not exceed array bounds
     Serial.println(numTags);
     EEPROM.write(0, numTags);
     EEPROM.commit();
@@ -218,7 +218,7 @@ void processData(String data) {
     return;
   } else if (data.startsWith("T")) {
     int index = data.substring(1, data.length()).toInt() - 1;
-    if (index >= 0 && index < 10) {
+    if (index >= 0 && index < 20) {
       tags[index] = prevTagID;
       writeStringToEEPROM(10 + index * 10, prevTagID);
       EEPROM.commit();
@@ -232,54 +232,43 @@ void processData(String data) {
     return;
   } else if (data.startsWith("C")) {
     int index = data.substring(1, data.length()).toInt() - 1;
-    if (index >= 0 && index < 10) {
+    if (index >= 0 && index < 20) {
       commands[index] = data.substring(3, data.length());
-      writeStringToEEPROM(100 + index * 10, commands[index]);
+      writeStringToEEPROM(200 + index * 10, commands[index]);
       EEPROM.commit();
       delay(10);
     }
     for (int i = 0; i < numTags; i++) {
-      String command = readStringFromEEPROM(100 + i * 10);
+      String command = readStringFromEEPROM(200 + i * 10);
       SerialBT.println("Index: " + String(i+1) + " Command: " + command);
       Serial.println("Index: " + String(i+1) + " Command: " + command);
     }
     return;
   } else if (data.startsWith("R")) {
     removeCommand = data.substring(1, data.length());
-    writeStringToEEPROM(300, removeCommand);
+    writeStringToEEPROM(400, removeCommand);
     EEPROM.commit();
-    String command = readStringFromEEPROM(300);
+    String command = readStringFromEEPROM(400);
     delay(10);
     SerialBT.println("Remove Command: " + command);
     Serial.println("Remove Command: " + command);
     return;
-  } else if (data.startsWith("M")){
-    if (data.substring(1, data.length()).toInt() == 1){
-      mode = 1; EEPROM.write(5, mode); EEPROM.commit(); delay(10);
-      Serial.println("MODE SET TO MASTER"); SerialBT.println("MODE SET TO MASTER");
-    } else if (data.substring(1, data.length()).toInt() == 0){
-      mode = 0; EEPROM.write(5, mode); EEPROM.commit(); delay(10);
-      Serial.println("MODE SET TO STANDALONE"); SerialBT.println("MODE SET TO STANDALONE");
-    }
-  } 
-  
-  else if (data.indexOf("HELP")>=0){
+  } else if (data.indexOf("HELP")>=0){
     SerialBT.println("RFID Cube Podium PN532 - Firmware v1.0");
     SerialBT.println("N<num> - Set number of tags. 'Eg: N10' ");
     SerialBT.println("T<index> - Set Last placed tag ID for index. Eg: T1");
     SerialBT.println("C<index><command> - Set command for index. Eg: C1HELLO - Set HELLO command for index 1");
     SerialBT.println("R<command> - Set Tag Remove command. Eg: RREMOVED - Set REMOVED command for tag remove");
-    SerialBT.println("M<mode> - Set mode. M1 - Set mode to MASTER, M0 - Set mode to Standalone" );
 
     Serial.println("RFID Cube Podium PN532 - Firmware v1.0"); Serial.println();
     Serial.println("N<num> - Set number of tags. 'Eg: N10' ");
     Serial.println("T<index> - Set Last placed tag ID for index. Eg: T1");
     Serial.println("C<index><command> - Set command for index. Eg: C1HELLO - Set HELLO command for index 1");
     Serial.println("R<command> - Set Tag Remove command. Eg: RREMOVED - Set REMOVED command for tag remove");
-    Serial.println("M<mode> - Set mode. M1 - Set mode to MASTER, M0 - Set mode to Standalone" );
     return;
   }
 }
+
 
 /**
  * @brief Reads data from the serial input if available and processes it.
@@ -327,13 +316,14 @@ void readBTSerial(){
 void eepromInit(){
   EEPROM.begin(512);                                  // eeprom init
   numTags = EEPROM.read(0);                           // read number of tags
-  mode = EEPROM.read(5);                              // read mode
-  removeCommand = readStringFromEEPROM(300);          // read remove command
+  if (numTags > 20) numTags = 10;                     // Ensure numTags does not exceed array bounds
+  removeCommand = readStringFromEEPROM(400);          // read remove command
   for (int i = 0; i < numTags; i++) {
     tags[i] = readStringFromEEPROM(10 + i * 10);      // read tagIDs
-    commands[i] = readStringFromEEPROM(100 + i * 10); // read commands
+    commands[i] = readStringFromEEPROM(200 + i * 10); // read commands
   }
 }
+
 
 /**
  * @brief Initializes the serial communication, Bluetooth communication, EEPROM, and NFC module.
