@@ -256,14 +256,14 @@ void processData(String data) {
   } else if (data.indexOf("HELP")>=0){
     SerialBT.println("RFID Cube Podium PN532 - Firmware v1.0");
     SerialBT.println("N<num> - Set number of tags. 'Eg: N10' ");
-    SerialBT.println("T<index> - Set Last placed tag ID for index. Eg: T1");
-    SerialBT.println("C<index><command> - Set command for index. Eg: C1HELLO - Set HELLO command for index 1");
+    SerialBT.println("T<index> - Set Last placed tag ID for index. Eg: T01");
+    SerialBT.println("C<index><command> - Set command for index. Eg: C01HELLO - Set HELLO command for index 1");
     SerialBT.println("R<command> - Set Tag Remove command. Eg: RREMOVED - Set REMOVED command for tag remove");
 
     Serial.println("RFID Cube Podium PN532 - Firmware v1.0"); Serial.println();
     Serial.println("N<num> - Set number of tags. 'Eg: N10' ");
-    Serial.println("T<index> - Set Last placed tag ID for index. Eg: T1");
-    Serial.println("C<index><command> - Set command for index. Eg: C1HELLO - Set HELLO command for index 1");
+    Serial.println("T<index> - Set Last placed tag ID for index. Eg: T01");
+    Serial.println("C<index><command> - Set command for index. Eg: C01HELLO - Set HELLO command for index 1");
     Serial.println("R<command> - Set Tag Remove command. Eg: RREMOVED - Set REMOVED command for tag remove");
     return;
   }
